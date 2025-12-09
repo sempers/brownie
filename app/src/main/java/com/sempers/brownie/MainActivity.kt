@@ -1,5 +1,6 @@
 package com.sempers.brownie
 
+import android.Manifest
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +18,7 @@ import android.animation.AnimatorSet
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.view.KeyEvent
@@ -24,6 +26,8 @@ import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
@@ -88,6 +92,7 @@ class MainActivity : AppCompatActivity() {
     // Media Session
     private lateinit var mediaSession: MediaSession
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private fun initMediaSession() {
         mediaSession = MediaSession(this, "NoiseSession")
 
@@ -181,24 +186,67 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Last click time to make play button not that responsive
-    private var lastClickTime = 0L
-
     // Receiving updates from NoiseEngine through NoiseService
     private var lastDbValue = 0.0
 
     private val sampleUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (!isPlaying) {
-                isPlaying = true
-                btnPlayPause.setImageResource(R.drawable.pause_circle)
+                textDbValue.text = "Pause"
             }
-            val linearValue = intent?.getDoubleExtra("linearValue", 0.0) ?: 0.0
-            val rmsValue = intent?.getDoubleExtra("rmsValue", 0.0) ?: 0.0
-            val dbValue = intent?.getDoubleExtra("dbValue", 0.0) ?: 0.0
-            val autoGain = intent?.getDoubleExtra("autoGain", 1.0) ?: 1.0
-            lastDbValue = dbValue
-            textDbValue.text = String.format("%.1f dB", dbValue)
+            else {
+                val linearValue = intent?.getDoubleExtra("linearValue", 0.0) ?: 0.0
+                val rmsValue = intent?.getDoubleExtra("rmsValue", 0.0) ?: 0.0
+                val dbValue = intent?.getDoubleExtra("dbValue", 0.0) ?: 0.0
+                val autoGain = intent?.getDoubleExtra("autoGain", 1.0) ?: 1.0
+                lastDbValue = dbValue
+                textDbValue.text = String.format("%.1f dB", dbValue)
+            }
+        }
+    }
+
+    private val toggleUpdateReceiver = object: BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val success: Boolean? = intent?.getBooleanExtra("success", false)
+            val state: Boolean? = intent?.getBooleanExtra("state", false)
+            if (success == null || state == null || !success)
+                return
+
+            if (state) {
+                textDbValue.text = String.format("%.1f dB", lastDbValue)
+                btnPlayPause.setImageResource(R.drawable.pause_circle)
+                isPlaying = true
+            }
+            else {
+                textDbValue.text = "Pause"
+                btnPlayPause.setImageResource(R.drawable.play_circle)
+                isPlaying = false
+            }
+        }
+    }
+
+    private fun togglePlayPause() {
+        if (isPlaying) {
+            pauseNoiseService()
+        } else {
+            updateNoiseService()
+            playNoiseService()
+        }
+    }
+
+    // Notifications request
+    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        isGranted: Boolean -> {}
+            // nothing to do
+        }
+
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
 
@@ -206,26 +254,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        //notifications
+        askNotificationPermission()
+
         initMediaSession()
 
         textDbValue = findViewById<TextView>(R.id.textDbValue)
         btnPlayPause = findViewById<ImageButton>(R.id.buttonPlayPause)
-        val seekDispersion = findViewById<SeekBar>(R.id.seekDispersion)
-        val textDispersion = findViewById<TextView>(R.id.textDispersionValue)
-        val seekSmoothness = findViewById<SeekBar>(R.id.seekSmoothness)
-        val textSmoothness = findViewById<TextView>(R.id.textSmoothnessValue)
-        val seekStereoWidth = findViewById<SeekBar>(R.id.seekStereoWidth)
-        val textStereoWidth = findViewById<TextView>(R.id.textStereoWidthValue)
-        val seekLPF = findViewById<SeekBar>(R.id.seekLPFCoef)
-        val textLPF = findViewById<TextView>(R.id.textLPFCoefValue)
-        val seekVolume = findViewById<SeekBar>(R.id.seekVolume)
-        val textVolume = findViewById<TextView>(R.id.textVolumeValue)
-        val checkTwoChannels = findViewById<CheckBox>(R.id.checkboxIsTwoChannels)
-        val checkAutoNormalize = findViewById<CheckBox>(R.id.checkboxAutoNormalize)
-        val checkAM = findViewById<CheckBox>(R.id.checkboxAM)
-        val checkSD = findViewById<CheckBox>(R.id.checkboxStereoDrift)
-        val header = findViewById<TextView>(R.id.advancedSettingsHeader)
-        val container = findViewById<LinearLayout>(R.id.advancedSettingsContainer)
+
 
         // background changing
         bgImage = findViewById<ImageView>(R.id.imageBackground)
@@ -240,17 +276,25 @@ class MainActivity : AppCompatActivity() {
 
         // Pause initially
         btnPlayPause.setImageResource(R.drawable.play_circle)
-
         btnPlayPause.setOnClickListener {
-            // Blocking repeated clicks
-            val now = System.currentTimeMillis()
-            if (now - lastClickTime < 500) {
-                return@setOnClickListener
-            }
-            lastClickTime = now
-
             togglePlayPause()
         }
+
+        // drop down Advanced settings
+        val header = findViewById<TextView>(R.id.advancedSettingsHeader)
+        val container = findViewById<LinearLayout>(R.id.advancedSettingsContainer)
+        container.visibility = View.GONE
+        header.setOnClickListener {
+            if (container.visibility == View.VISIBLE) {
+                container.visibility = View.GONE
+                header.text = "Advanced settings ▼"
+            }
+            else {
+                container.visibility = View.VISIBLE
+                header.text = "Advanced settings ▲"
+            }
+        }
+
 
         // Reading settings initially
         val prefs = getSharedPreferences("BrowniePrefs", MODE_PRIVATE)
@@ -264,20 +308,22 @@ class MainActivity : AppCompatActivity() {
         settings.isAmplitudeModulation = prefs.getBoolean("am", false)
         settings.isStereoDrift = prefs.getBoolean("sd", false)
 
-        // drop down Advanced settings
-        container.visibility = View.GONE
-        header.setOnClickListener {
-            if (container.visibility == View.VISIBLE) {
-                container.visibility = View.GONE
-                header.text = "Advanced settings ▼"
-            }
-            else {
-                container.visibility = View.VISIBLE
-                header.text = "Advanced settings ▲"
-            }
-        }
-
         // Initialization from NoiseEngine
+        val seekDispersion = findViewById<SeekBar>(R.id.seekDispersion)
+        val textDispersion = findViewById<TextView>(R.id.textDispersionValue)
+        val seekSmoothness = findViewById<SeekBar>(R.id.seekSmoothness)
+        val textSmoothness = findViewById<TextView>(R.id.textSmoothnessValue)
+        val seekStereoWidth = findViewById<SeekBar>(R.id.seekStereoWidth)
+        val textStereoWidth = findViewById<TextView>(R.id.textStereoWidthValue)
+        val seekLPF = findViewById<SeekBar>(R.id.seekLPFCoef)
+        val textLPF = findViewById<TextView>(R.id.textLPFCoefValue)
+        val seekVolume = findViewById<SeekBar>(R.id.seekVolume)
+        val textVolume = findViewById<TextView>(R.id.textVolumeValue)
+        val checkTwoChannels = findViewById<CheckBox>(R.id.checkboxIsTwoChannels)
+        val checkAutoNormalize = findViewById<CheckBox>(R.id.checkboxAutoNormalize)
+        val checkAM = findViewById<CheckBox>(R.id.checkboxAM)
+        val checkSD = findViewById<CheckBox>(R.id.checkboxStereoDrift)
+
         seekDispersion.progress = (settings.dispersion * 100.0).toInt()
         textDispersion.text = (settings.dispersion * 100.0).roundToInt().toString() + "%"
         seekSmoothness.progress = (settings.smoothness * 100.0).roundToInt()
@@ -380,24 +426,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun togglePlayPause() {
-        if (isPlaying) {
-            pauseNoiseService()
-            textDbValue.text = "Pause"
-            btnPlayPause.setImageResource(R.drawable.play_circle)
-        } else {
-            updateNoiseService()
-            playNoiseService()
-            textDbValue.text = String.format("%.1f dB", lastDbValue)
-            btnPlayPause.setImageResource(R.drawable.pause_circle)
-        }
-        isPlaying = !isPlaying
-    }
+
 
     override fun onStart()
     {
         super.onStart()
         registerReceiver(sampleUpdateReceiver, IntentFilter("com.sempers.brownie.SAMPLE_UPDATE"), Context.RECEIVER_NOT_EXPORTED)
+        registerReceiver(toggleUpdateReceiver, IntentFilter("com.sempers.brownie.TOGGLE_UPDATE"), Context.RECEIVER_NOT_EXPORTED)
         startNoiseService()
     }
 
@@ -417,6 +452,7 @@ class MainActivity : AppCompatActivity() {
         mediaSession.release()
         stopNoiseService()
         unregisterReceiver(sampleUpdateReceiver)
+        unregisterReceiver(toggleUpdateReceiver)
         handler.removeCallbacks(bgRunnable)
     }
 }

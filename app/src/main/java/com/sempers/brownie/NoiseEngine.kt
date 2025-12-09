@@ -16,7 +16,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 class NoiseEngine {
-    private var isPlaying = false
+    var isPlaying = false
     // Settings for foreground service's noise engine
     private var settings = NoiseEngineSettings()
 
@@ -249,6 +249,7 @@ class NoiseEngine {
         if (!isPlaying) return
 
         isPlaying = false
+
         try {
             audioTrack.stop();
             audioTrack.release();
