@@ -6,29 +6,45 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.os.Build
 import android.os.IBinder
+import android.view.KeyEvent
 import androidx.core.app.NotificationCompat
 
 class NoiseService : Service() {
     private val engine = NoiseEngine()
+    private var isPlaying = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
 
-        engine.onSampleUpdate = { linear, db, gain ->
-            sendSampleUpdate(linear, db, gain)
+        engine.onSampleUpdate = { linearValue, rmsValue, dbValue, autoGain ->
+            val intent = Intent("com.sempers.brownie.SAMPLE_UPDATE")
+            intent.`package` = applicationContext.packageName
+            intent.putExtra("linearValue", linearValue)
+            intent.putExtra("rmsValue", rmsValue)
+            intent.putExtra("dbValue", dbValue)
+            intent.putExtra("autoGain", autoGain)
+            sendBroadcast(intent)
         }
+    }
+
+    override fun onDestroy() {
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.getStringExtra("action")
 
         when (action) {
-            "start" -> startNoise()
-            "stop" -> stopNoise()
+            "start" -> { }
+            "play" -> playNoise()
+            "pause" -> pauseNoise()
+            "stop" -> stopService()
             "update" -> {
                 val newSettings = intent?.getSerializableExtra("settings") as? NoiseEngineSettings
                 if (newSettings != null) {
@@ -53,12 +69,19 @@ class NoiseService : Service() {
         return START_STICKY
     }
 
-    private fun startNoise() {
+    private fun playNoise() {
         engine.start()
+        isPlaying = true
     }
 
-    private fun stopNoise() {
+    private fun pauseNoise() {
         engine.stop()
+        isPlaying = false
+    }
+
+    private fun stopService() {
+        engine.stop()
+        isPlaying = false
         stopForeground(true)
         stopSelf()
     }
@@ -74,17 +97,8 @@ class NoiseService : Service() {
 
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Brownie")
-            .setContentText("Playing")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentText("Playing Brown noise")
+            .setSmallIcon(R.drawable.icon)
             .build()
-    }
-
-    private fun sendSampleUpdate(linearValue: Double, dbValue: Double, autoGain: Double) {
-        val intent = Intent("com.sempers.brownie.SAMPLE_UPDATE")
-        intent.`package` = applicationContext.packageName
-        intent.putExtra("linearValue", linearValue)
-        intent.putExtra("dbValue", dbValue)
-        intent.putExtra("autoGain", autoGain)
-        sendBroadcast(intent)
     }
 }

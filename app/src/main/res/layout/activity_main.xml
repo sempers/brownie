@@ -12,11 +12,11 @@
         android:id="@+id/imageBackground"
         android:layout_width="0dp"
         android:layout_height="320dp"
-        android:src="@drawable/background0"
         android:scaleType="centerCrop"
-        app:layout_constraintTop_toTopOf="parent"
+        android:src="@drawable/background0"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/imageOverlay"
@@ -32,7 +32,7 @@
         app:layout_constraintVertical_bias="0.0" />
 
     <ImageButton
-        android:id="@+id/buttonPlayStop"
+        android:id="@+id/buttonPlayPause"
         android:layout_width="160dp"
         android:layout_height="160dp"
         android:layout_marginTop="80dp"
@@ -47,9 +47,9 @@
         android:id="@+id/avgContainer"
         android:layout_width="80dp"
         android:layout_height="32dp"
-        app:layout_constraintTop_toBottomOf="@id/buttonPlayStop"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/buttonPlayPause">
 
         <View
             android:layout_width="match_parent"
@@ -57,305 +57,339 @@
             android:background="@drawable/rounded_black" />
 
         <TextView
-            android:id="@+id/textAvgValue"
+            android:id="@+id/textDbValue"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_vertical|center"
-            android:textColor="#FFFFFF"
-            android:paddingEnd="0dp"
             android:text="Pause"
-            android:textSize="18sp"/>
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
     </FrameLayout>
 
-    <LinearLayout
-        android:id="@+id/settingsPanel"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:orientation="vertical"
-        android:padding="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/imageBackground">
-
-        <!-- ======== DISPERSION ========= -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="4dp"
-            android:paddingRight="14dp">
-
-            <TextView
-                android:id="@+id/textDispersionLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Dispersion"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textDispersionValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="30%"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="@id/textDispersionLabel"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/textDispersionLabel" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- ======== SMOOTHING ========= -->
-        <SeekBar
-            android:id="@+id/seekDispersion"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:max="100"
-            android:min="0"
-            android:progressDrawable="@drawable/custom_seekbar"
-            android:thumb="@drawable/custom_thumb"
-            android:thumbTint="#FFFFFF" />
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="4dp"
-            android:paddingRight="14dp">
-
-            <TextView
-                android:id="@+id/textSmoothnessLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Smoothness"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textSmoothnessValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10%"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="@id/textSmoothnessLabel"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/textSmoothnessLabel" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <SeekBar
-            android:id="@+id/seekSmoothness"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:max="100"
-            android:min="0"
-            android:progressDrawable="@drawable/custom_seekbar"
-            android:thumb="@drawable/custom_thumb"
-            android:thumbTint="#FFFFFF" />
-
-        <!-- ======== PANORAMA ========= -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="14dp">
-
-            <TextView
-                android:id="@+id/textPanLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Stereo width"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textStereoWidthValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="90%"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="@id/textPanLabel"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/textPanLabel" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <SeekBar
-            android:id="@+id/seekStereoWidth"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:max="100"
-            android:min="0"
-            android:progressDrawable="@drawable/custom_seekbar"
-            android:thumb="@drawable/custom_thumb"
-            android:thumbTint="#FFFFFF" />
-
-        <!-- ======== LOWPASS FILTER ========= -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="14dp"
-            >
-
-            <TextView
-                android:id="@+id/textLPFCoefLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Low-pass filter"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textLPFCoefValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="100%"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="@id/textLPFCoefLabel"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/textLPFCoefLabel" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <SeekBar
-            android:id="@+id/seekLPFCoef"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:max="100"
-            android:min="0"
-            android:progressDrawable="@drawable/custom_seekbar"
-            android:thumb="@drawable/custom_thumb"
-            android:thumbTint="#FFFFFF" />
-
-        <!-- ======== VOLUME ========= -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="14dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="14dp">
-
-            <TextView
-                android:id="@+id/textVolumeLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Volume"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textVolumeValue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="100%"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                app:layout_constraintBottom_toBottomOf="@id/textVolumeLabel"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/textVolumeLabel" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <SeekBar
-            android:id="@+id/seekVolume"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:max="200"
-            android:min="0"
-            android:progressDrawable="@drawable/custom_seekbar"
-            android:thumb="@drawable/custom_thumb"
-            android:thumbTint="#FFFFFF" />
+        app:layout_constraintTop_toBottomOf="@id/imageBackground"
+        app:layout_constraintVertical_bias="1.0"
+        tools:layout_editor_absoluteX="0dp">
 
         <LinearLayout
+            android:id="@+id/settingsPanel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight ="16dp"
+            android:paddingTop="16dp"
             android:paddingBottom="0dp">
 
-            <CheckBox
-                android:id="@+id/checkboxIsTwoChannels"
-                android:layout_width="wrap_content"
+
+            <!-- ======== DISPERSION ========= -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:buttonTint="@color/checkbox_checked_color"/>
+                android:paddingLeft="16dp"
+                android:paddingTop="0dp"
+                android:paddingRight="14dp">
+
+                <TextView
+                    android:id="@+id/textDispersionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dispersion"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/textDispersionValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="30%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="@id/textDispersionLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/textDispersionLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- ======== SMOOTHING ========= -->
+            <SeekBar
+                android:id="@+id/seekDispersion"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:max="100"
+                android:min="0"
+                android:progressDrawable="@drawable/custom_seekbar"
+                android:thumb="@drawable/custom_thumb"
+                android:thumbTint="#FFFFFF" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="16dp"
+                android:paddingTop="0dp"
+                android:paddingRight="16dp">
+
+                <TextView
+                    android:id="@+id/textSmoothnessLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Smoothness"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/textSmoothnessValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="@id/textSmoothnessLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/textSmoothnessLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <SeekBar
+                android:id="@+id/seekSmoothness"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:max="100"
+                android:min="0"
+                android:progressDrawable="@drawable/custom_seekbar"
+                android:thumb="@drawable/custom_thumb"
+                android:thumbTint="#FFFFFF" />
+
+            <!-- ======== PANORAMA ========= -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp">
+
+                <TextView
+                    android:id="@+id/textPanLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Stereo width"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/textStereoWidthValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="90%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="@id/textPanLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/textPanLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <SeekBar
+                android:id="@+id/seekStereoWidth"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:max="100"
+                android:min="0"
+                android:progressDrawable="@drawable/custom_seekbar"
+                android:thumb="@drawable/custom_thumb"
+                android:thumbTint="#FFFFFF" />
+
+            <!-- ======== LOWPASS FILTER ========= -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp">
+
+                <TextView
+                    android:id="@+id/textLPFCoefLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Low-pass filter"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/textLPFCoefValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="100%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="@id/textLPFCoefLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/textLPFCoefLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <SeekBar
+                android:id="@+id/seekLPFCoef"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:max="100"
+                android:min="0"
+                android:progressDrawable="@drawable/custom_seekbar"
+                android:thumb="@drawable/custom_thumb"
+                android:thumbTint="#FFFFFF" />
+
+            <!-- ======== VOLUME ========= -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="16dp">
+
+                <TextView
+                    android:id="@+id/textVolumeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Volume"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/textVolumeValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="100%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="@id/textVolumeLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/textVolumeLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <SeekBar
+                android:id="@+id/seekVolume"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:max="200"
+                android:min="0"
+                android:progressDrawable="@drawable/custom_seekbar"
+                android:thumb="@drawable/custom_thumb"
+                android:thumbTint="#FFFFFF" />
 
             <TextView
-                android:layout_width="0dp"
+                android:id="@+id/advancedSettingsHeader"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="2 channels"
+                android:background="#1E130A"
+                android:padding="6dp"
+                android:layout_marginLeft="14dp"
+                android:layout_marginRight="14dp"
+                android:text="Advanced settings ▼"
                 android:textColor="#FFFFFF"
-                android:textSize="18sp" />
+                android:textSize="16sp"
+                android:gravity="center_vertical|center"/>
 
-            <CheckBox
-                android:id="@+id/checkboxAutoNormalize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:buttonTint="@color/checkbox_checked_color"/>
+            <LinearLayout
+                android:id="@+id/advancedSettingsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:orientation="vertical"
+                android:paddingTop="0dp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Auto-normalize"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="0dp"
+                    android:paddingStart="6dp"
+                    android:paddingBottom="0dp">
+
+                    <CheckBox
+                        android:id="@+id/checkboxIsTwoChannels"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/checkbox_checked_color" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="2 channels"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp" />
+
+                    <CheckBox
+                        android:id="@+id/checkboxAutoNormalize"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/checkbox_checked_color" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Auto-normalize"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:paddingStart = "6dp">
+
+                    <CheckBox
+                        android:id="@+id/checkboxAM"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/checkbox_checked_color" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Amp modulation"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp" />
+
+                    <CheckBox
+                        android:id="@+id/checkboxStereoDrift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/checkbox_checked_color" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Stereo drift"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="0dp"
-            android:paddingBottom="0dp">
-
-            <CheckBox
-                android:id="@+id/checkboxAM"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:buttonTint="@color/checkbox_checked_color"/>
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Amp modulation"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp" />
-
-            <CheckBox
-                android:id="@+id/checkboxStereoDrift"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:buttonTint="@color/checkbox_checked_color"
-                />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Stereo drift"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp" />
-        </LinearLayout>
-    </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

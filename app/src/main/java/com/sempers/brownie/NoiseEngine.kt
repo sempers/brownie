@@ -12,17 +12,17 @@ import kotlin.math.log10
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 class NoiseEngine {
     private var isPlaying = false
     // Settings for foreground service's noise engine
-    var settings = NoiseEngineSettings()
+    private var settings = NoiseEngineSettings()
 
     // Constants
     private val MIN_AMP = 10.0.pow(-72 / 20.0)
     private val SAMPLE_RATE = 44100
-    private val NORM_LEVEL = 0.5
 
     // Modulations
     private val AM_SPEED = 0.0333    // Hz
@@ -30,23 +30,22 @@ class NoiseEngine {
     private val DRIFT_SPEED = 0.0333 // Hz
     private val DRIFT_DEPTH = 0.05
 
-    // LPF
-    private val CUTOFF_FREQUENCY = 200;
-
     // Filter coefficients
+    private var a1 = 0.0
+    private var a2 = 0.0
     private var b0 = 0.0
     private var b1 = 0.0
     private var b2 = 0.0
-    private var a1 = 0.0
-    private var a2 = 0.0
 
     // Filter states
     private var lState = FilterState()
     private var rState = FilterState()
     private var lastResonance = -1.0
 
-    var onSampleUpdate: ((a: Double, b: Double, c: Double) -> Unit)? = null
+    // Handler of updated data from the service
+    var onSampleUpdate: ((a: Double, b: Double, c: Double, d: Double) -> Unit)? = null
 
+    // Audiotrack object
     private lateinit var audioTrack: AudioTrack
 
     // Brown Noise generation
@@ -62,7 +61,7 @@ class NoiseEngine {
     }
 
     private fun calculateLPFCoefficients(resonance: Double) {
-        val omega = (2.0 * PI * CUTOFF_FREQUENCY / SAMPLE_RATE)
+        val omega = (2.0 * PI * settings.cutoffFrequency / SAMPLE_RATE)
         val sinOmega = sin(omega)
         val cosOmega = cos(omega)
         val alpha = sinOmega / (2.0f * resonance)
@@ -122,8 +121,9 @@ class NoiseEngine {
         var prevR = brownR
         var phaseAM = 0.0
         var phaseDrift = 0.0
-        var autoGain = 0.0
-        var avgBufferLevel = NORM_LEVEL
+        var autoGain = -1.0
+        var avgBufferLevel = settings.normLevel
+        var avgBufferRmsLevel = settings.normLevel
 
         audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
@@ -149,11 +149,15 @@ class NoiseEngine {
             while (isPlaying) {
                 var count = 0
                 var sum = 0.0
+                var sum2 = 0.0
                 val smooth = settings.smoothness.coerceIn(0.1, 0.99) * 100.0
                 val panDelta = settings.stereoWidth * 0.2
                 val dispersion = settings.dispersion.coerceIn(0.01, 0.99)
                 val resonance = (1.0 - settings.lpfCoefficient).coerceIn(0.1, 1.0)
-                autoGain =  NORM_LEVEL / avgBufferLevel
+                if (settings.autoNormalize) {
+                    autoGain =
+                        if (autoGain == -1.0) 1.0 else autoGain * settings.normLevel / avgBufferLevel
+                }
 
                 for (i in buffer.indices step 2) {
                     // Generating mono
@@ -208,8 +212,13 @@ class NoiseEngine {
                     }
 
                     // Volume and auto-normalization
-                    left *= settings.volume
-                    right *= settings.volume
+                    if (settings.autoNormalize) {
+                        left *= autoGain
+                        right*= autoGain
+                    } else {
+                        left *= settings.volume
+                        right *= settings.volume
+                    }
 
                     // Limiter
                     left = left.coerceIn(-0.9999, 0.9999)
@@ -218,6 +227,7 @@ class NoiseEngine {
                     // Average on Buffer counting after Compressor and Volume
                     count++
                     sum += (abs(left) + abs(right)) / 2.0
+                    sum2 += left*left + right*right
 
                     // Buffering
                     buffer[i]     = (left * Short.MAX_VALUE).roundToInt().toShort()
@@ -225,10 +235,10 @@ class NoiseEngine {
                 }
 
                 avgBufferLevel =  sum / count
-                val linearValue = avgBufferLevel
-                val dbValue = 20.0 * log10(max(avgBufferLevel, MIN_AMP))
+                avgBufferRmsLevel = sqrt(sum2 / (2 * count))
+                val dbValue = 20.0 * log10(max(avgBufferRmsLevel, MIN_AMP))
 
-                onSampleUpdate?.invoke(linearValue, dbValue, autoGain)
+                onSampleUpdate?.invoke(avgBufferLevel, avgBufferRmsLevel, dbValue, autoGain)
 
                 audioTrack.write(buffer, 0, buffer.size)
             }
@@ -236,9 +246,17 @@ class NoiseEngine {
     }
 
     fun stop() {
+        if (!isPlaying) return
+
         isPlaying = false
-        audioTrack.stop();
-        audioTrack.release();
+        try {
+            audioTrack.stop();
+            audioTrack.release();
+        }
+        catch (e: Exception)
+        {
+            // for the rare case when audiotrack is not fully initialized, so fast clicking ends up in an exception
+        }
     }
 
     fun updateSettings(newSettings: NoiseEngineSettings) {

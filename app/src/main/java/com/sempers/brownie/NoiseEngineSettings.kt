@@ -11,5 +11,7 @@ data class NoiseEngineSettings (
     var isTwoChannels: Boolean = true,
     var autoNormalize: Boolean = false,
     var isAmplitudeModulation: Boolean = false,
-    var isStereoDrift: Boolean = false
+    var isStereoDrift: Boolean = false,
+    var cutoffFrequency: Int = 1000,
+    var normLevel: Double = 0.3
 ): Serializable

@@ -17,8 +17,13 @@ import android.animation.AnimatorSet
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
+import android.view.KeyEvent
+import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
@@ -26,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bgImage: ImageView
     private lateinit var overlayImage: ImageView
     private lateinit var textDbValue: TextView
-    private lateinit var btnPlayStop: ImageView
+    private lateinit var btnPlayPause: ImageView
     private var settings = NoiseEngineSettings()
 
     // Background change
@@ -45,10 +50,17 @@ class MainActivity : AppCompatActivity() {
         R.drawable.background11,
         R.drawable.background12,
         R.drawable.background13,
-        R.drawable.background14
+        R.drawable.background14,
+        R.drawable.background15,
+        R.drawable.background16,
+        R.drawable.background17,
+        R.drawable.background18,
+        R.drawable.background19,
+        R.drawable.background20
     )
     private var currentBgIndex = 0
     private val bgChangeInterval = 30_000L
+
     private fun crossfade(front: ImageView, back: ImageView, frontRes: Int, backRes: Int) {
         front.setImageResource(frontRes)
         back.setImageResource(backRes)
@@ -61,6 +73,7 @@ class MainActivity : AppCompatActivity() {
         animatorSet.interpolator = DecelerateInterpolator()
         animatorSet.start()
     }
+
     private val handler = Handler(Looper.getMainLooper())
 
     private val bgRunnable = object : Runnable {
@@ -72,26 +85,104 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Media Session
+    private lateinit var mediaSession: MediaSession
+
+    private fun initMediaSession() {
+        mediaSession = MediaSession(this, "NoiseSession")
+
+        mediaSession.setFlags(
+            MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS
+        )
+
+        mediaSession.setCallback(object : MediaSession.Callback() {
+            override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                val event = mediaButtonIntent?.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                if (event?.action == KeyEvent.ACTION_DOWN) {
+                    when (event.keyCode) {
+                        KeyEvent.KEYCODE_MEDIA_PLAY,
+                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                        KeyEvent.KEYCODE_HEADSETHOOK,
+                        KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                            togglePlayPause()
+                            return true
+                        }
+                    }
+                }
+
+                return super.onMediaButtonEvent(mediaButtonIntent)
+            }
+        })
+
+        val state = PlaybackState.Builder()
+            .setActions(
+                PlaybackState.ACTION_PLAY or
+                        PlaybackState.ACTION_PAUSE or
+                        PlaybackState.ACTION_PLAY_PAUSE
+            )
+            .setState(PlaybackState.STATE_PAUSED, 0, 1f)
+            .build()
+
+        mediaSession.setPlaybackState(state)
+        mediaSession.isActive = true
+    }
+
     // Noise Service
-    fun startNoiseService() {
+    private fun startNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
         intent.`package` = "com.brownie.sempers"
         intent.putExtra("action", "start")
         ContextCompat.startForegroundService(this, intent)
     }
 
-    fun stopNoiseService() {
+    private fun playNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
-        intent.putExtra("action", "stop")
+        intent.`package` = "com.brownie.sempers"
+        intent.putExtra("action", "play")
         startService(intent)
     }
 
-    fun updateNoiseService() {
+    private fun pauseNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
+        intent.`package` = "com.brownie.sempers"
+        intent.putExtra("action", "pause")
+        startService(intent)
+    }
+
+    private fun stopNoiseService() {
+        val intent = Intent(this, NoiseService::class.java)
+        intent.`package` = "com.brownie.sempers"
+        intent.putExtra("action", "stop")
+        startService(intent)
+    }
+    private fun updateNoiseService() {
+        val intent = Intent(this, NoiseService::class.java)
+        intent.`package` = "com.brownie.sempers"
         intent.putExtra("action", "update")
         intent.putExtra("settings", settings)
         startService(intent)
     }
+
+    // Save settings
+    private fun saveSettings() {
+        val prefs = getSharedPreferences("BrowniePrefs", Context.MODE_PRIVATE)
+
+        with(prefs.edit()) {
+            putFloat("dispersion", settings.dispersion.toFloat())
+            putFloat("smoothness", settings.smoothness.toFloat())
+            putFloat("panorama", settings.stereoWidth.toFloat())
+            putFloat("compression", settings.lpfCoefficient.toFloat())
+            putFloat("volume", settings.volume.toFloat())
+            putBoolean("2channels", settings.isTwoChannels)
+            putBoolean("autonormalize", settings.autoNormalize)
+            putBoolean("am", settings.isAmplitudeModulation)
+            putBoolean("sd", settings.isStereoDrift)
+            apply()
+        }
+    }
+
+    // Last click time to make play button not that responsive
+    private var lastClickTime = 0L
 
     // Receiving updates from NoiseEngine through NoiseService
     private var lastDbValue = 0.0
@@ -100,13 +191,14 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (!isPlaying) {
                 isPlaying = true
-                btnPlayStop.setImageResource(R.drawable.pause_circle)
+                btnPlayPause.setImageResource(R.drawable.pause_circle)
             }
             val linearValue = intent?.getDoubleExtra("linearValue", 0.0) ?: 0.0
+            val rmsValue = intent?.getDoubleExtra("rmsValue", 0.0) ?: 0.0
             val dbValue = intent?.getDoubleExtra("dbValue", 0.0) ?: 0.0
             val autoGain = intent?.getDoubleExtra("autoGain", 1.0) ?: 1.0
             lastDbValue = dbValue
-            textDbValue.text = String.format("%.1f dB", lastDbValue)
+            textDbValue.text = String.format("%.1f dB", dbValue)
         }
     }
 
@@ -114,49 +206,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        textDbValue = findViewById<TextView>(R.id.textAvgValue)
-        btnPlayStop = findViewById<ImageButton>(R.id.buttonPlayStop)
+        initMediaSession()
 
-        // background changing
-        bgImage = findViewById<ImageView>(R.id.imageBackground)
-        overlayImage = findViewById<ImageView>(R.id.imageOverlay)
-        bgImage.setImageResource(bgImages[currentBgIndex])
-        handler.postDelayed(bgRunnable, bgChangeInterval)
-
-        // StatusBar fix
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = Color.parseColor("#1E130A")
-        }
-
-        // Pause initially
-        btnPlayStop.setImageResource(R.drawable.play_circle)
-
-        // Reading settings initially
-        val prefs = getSharedPreferences("BrowniePrefs", MODE_PRIVATE)
-        settings.dispersion = prefs.getFloat("dispersion", 0.3f).toDouble()
-        settings.smoothness = prefs.getFloat("smoothness", 0.5f).toDouble()
-        settings.stereoWidth = prefs.getFloat("panorama", 1.0f).toDouble()
-        settings.lpfCoefficient = prefs.getFloat("compression", 0.0f).toDouble()
-        settings.volume = prefs.getFloat("volume", 1.0f).toDouble()
-        settings.isTwoChannels = prefs.getBoolean("2channels", true)
-        settings.autoNormalize = prefs.getBoolean("autonormalize", false)
-        settings.isAmplitudeModulation = prefs.getBoolean("am", false)
-        settings.isStereoDrift = prefs.getBoolean("sd", false)
-
-        btnPlayStop.setOnClickListener {
-            if (isPlaying) {
-                stopNoiseService()
-                textDbValue.text = "Pause"
-                btnPlayStop.setImageResource(R.drawable.play_circle)
-            } else {
-                updateNoiseService()
-                startNoiseService()
-                textDbValue.text = String.format("%.1f dB", lastDbValue)
-                btnPlayStop.setImageResource(R.drawable.pause_circle)
-            }
-            isPlaying = !isPlaying
-        }
-
+        textDbValue = findViewById<TextView>(R.id.textDbValue)
+        btnPlayPause = findViewById<ImageButton>(R.id.buttonPlayPause)
         val seekDispersion = findViewById<SeekBar>(R.id.seekDispersion)
         val textDispersion = findViewById<TextView>(R.id.textDispersionValue)
         val seekSmoothness = findViewById<SeekBar>(R.id.seekSmoothness)
@@ -171,6 +224,58 @@ class MainActivity : AppCompatActivity() {
         val checkAutoNormalize = findViewById<CheckBox>(R.id.checkboxAutoNormalize)
         val checkAM = findViewById<CheckBox>(R.id.checkboxAM)
         val checkSD = findViewById<CheckBox>(R.id.checkboxStereoDrift)
+        val header = findViewById<TextView>(R.id.advancedSettingsHeader)
+        val container = findViewById<LinearLayout>(R.id.advancedSettingsContainer)
+
+        // background changing
+        bgImage = findViewById<ImageView>(R.id.imageBackground)
+        overlayImage = findViewById<ImageView>(R.id.imageOverlay)
+        bgImage.setImageResource(bgImages[currentBgIndex])
+        handler.postDelayed(bgRunnable, bgChangeInterval)
+
+        // StatusBar fix
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = Color.parseColor("#1E130A")
+        }
+
+        // Pause initially
+        btnPlayPause.setImageResource(R.drawable.play_circle)
+
+        btnPlayPause.setOnClickListener {
+            // Blocking repeated clicks
+            val now = System.currentTimeMillis()
+            if (now - lastClickTime < 500) {
+                return@setOnClickListener
+            }
+            lastClickTime = now
+
+            togglePlayPause()
+        }
+
+        // Reading settings initially
+        val prefs = getSharedPreferences("BrowniePrefs", MODE_PRIVATE)
+        settings.dispersion = prefs.getFloat("dispersion", 0.3f).toDouble()
+        settings.smoothness = prefs.getFloat("smoothness", 0.5f).toDouble()
+        settings.stereoWidth = prefs.getFloat("panorama", 1.0f).toDouble()
+        settings.lpfCoefficient = prefs.getFloat("compression", 0.0f).toDouble()
+        settings.volume = prefs.getFloat("volume", 1.0f).toDouble()
+        settings.isTwoChannels = prefs.getBoolean("2channels", true)
+        settings.autoNormalize = prefs.getBoolean("autonormalize", false)
+        settings.isAmplitudeModulation = prefs.getBoolean("am", false)
+        settings.isStereoDrift = prefs.getBoolean("sd", false)
+
+        // drop down Advanced settings
+        container.visibility = View.GONE
+        header.setOnClickListener {
+            if (container.visibility == View.VISIBLE) {
+                container.visibility = View.GONE
+                header.text = "Advanced settings ▼"
+            }
+            else {
+                container.visibility = View.VISIBLE
+                header.text = "Advanced settings ▲"
+            }
+        }
 
         // Initialization from NoiseEngine
         seekDispersion.progress = (settings.dispersion * 100.0).toInt()
@@ -257,6 +362,7 @@ class MainActivity : AppCompatActivity() {
 
         checkAutoNormalize.setOnCheckedChangeListener { _, isChecked ->
             settings.autoNormalize = isChecked
+            seekVolume.isEnabled = !isChecked
             updateNoiseService()
             saveSettings()
         }
@@ -274,10 +380,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun togglePlayPause() {
+        if (isPlaying) {
+            pauseNoiseService()
+            textDbValue.text = "Pause"
+            btnPlayPause.setImageResource(R.drawable.play_circle)
+        } else {
+            updateNoiseService()
+            playNoiseService()
+            textDbValue.text = String.format("%.1f dB", lastDbValue)
+            btnPlayPause.setImageResource(R.drawable.pause_circle)
+        }
+        isPlaying = !isPlaying
+    }
+
     override fun onStart()
     {
         super.onStart()
         registerReceiver(sampleUpdateReceiver, IntentFilter("com.sempers.brownie.SAMPLE_UPDATE"), Context.RECEIVER_NOT_EXPORTED)
+        startNoiseService()
     }
 
     override fun onPause() {
@@ -292,25 +413,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        mediaSession.isActive = false
+        mediaSession.release()
         stopNoiseService()
         unregisterReceiver(sampleUpdateReceiver)
         handler.removeCallbacks(bgRunnable)
-    }
-
-    private fun saveSettings() {
-        val prefs = getSharedPreferences("BrowniePrefs", Context.MODE_PRIVATE)
-
-        with(prefs.edit()) {
-            putFloat("dispersion", settings.dispersion.toFloat())
-            putFloat("smoothness", settings.smoothness.toFloat())
-            putFloat("panorama", settings.stereoWidth.toFloat())
-            putFloat("compression", settings.lpfCoefficient.toFloat())
-            putFloat("volume", settings.volume.toFloat())
-            putBoolean("2channels", settings.isTwoChannels)
-            putBoolean("autonormalize", settings.autoNormalize)
-            putBoolean("am", settings.isAmplitudeModulation)
-            putBoolean("sd", settings.isStereoDrift)
-            apply()
-        }
     }
 }
