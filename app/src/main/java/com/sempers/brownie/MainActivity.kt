@@ -290,16 +290,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //notifications
+        // Request Notifications
         askNotificationPermission()
 
+        // Init Media Session for Bluetooth
         initMediaSession()
 
+        // Main controls
         textDbValue = findViewById<TextView>(R.id.textDbValue)
         btnPlayPause = findViewById<ImageButton>(R.id.buttonPlayPause)
 
-
-        // background changing
+        // Background changing
         bgImage = findViewById<ImageView>(R.id.imageBackground)
         overlayImage = findViewById<ImageView>(R.id.imageOverlay)
         bgImage.setImageResource(bgImages[currentBgIndex])
@@ -316,22 +317,9 @@ class MainActivity : AppCompatActivity() {
             togglePlayPause()
         }
 
-        // drop down Advanced settings
-
+        // Advanced Settings container
         val container = findViewById<LinearLayout>(R.id.advancedSettingsContainer)
         container.visibility = View.VISIBLE
-        /*
-            val header = findViewById<TextView>(R.id.advancedSettingsHeader)
-            header.setOnClickListener {
-            if (container.visibility == View.VISIBLE) {
-                container.visibility = View.GONE
-                header.text = "Advanced settings ▼"
-            }
-            else {
-                container.visibility = View.VISIBLE
-                header.text = "Advanced settings ▲"
-            }
-        }*/
 
         // Reading settings from preferences
         loadSettings()
@@ -369,7 +357,6 @@ class MainActivity : AppCompatActivity() {
         textVolume.text = (settings.volume * 100.0).roundToInt().toString() + "%"
         checkTwoChannels.isChecked = settings.isTwoChannels
         checkAutoNormalize.isChecked = settings.autoNormalize
-        //checkAM.isChecked = settings.isAmplitudeModulation
         checkSD.isChecked = settings.isStereoDrift
         checkDeepBass.isChecked = settings.isDeepBass
         seekCutoff.progress = (settings.cutoffFrequency).roundToInt()
@@ -452,12 +439,6 @@ class MainActivity : AppCompatActivity() {
             updateNoiseService()
             saveSettings()
         }
-
-        /*checkAM.setOnCheckedChangeListener { _, isChecked ->
-            settings.isAmplitudeModulation = isChecked
-            updateNoiseService()
-            saveSettings()
-        }*/
 
         checkSD.setOnCheckedChangeListener { _, isChecked ->
             settings.isStereoDrift = isChecked
