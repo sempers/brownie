@@ -6,11 +6,8 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.media.session.MediaSession
-import android.media.session.PlaybackState
 import android.os.Build
 import android.os.IBinder
-import android.view.KeyEvent
 import androidx.core.app.NotificationCompat
 import android.app.PendingIntent
 
@@ -34,17 +31,12 @@ class NoiseService : Service() {
             sendBroadcast(intent)
         }
 
-
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
                 NotificationChannel(channelId, "Brown Noise Playback", NotificationManager.IMPORTANCE_LOW)
             )
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
