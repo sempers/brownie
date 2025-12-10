@@ -81,8 +81,8 @@
             android:layout_height="0dp"
             android:orientation="vertical"
             android:paddingLeft="16dp"
-            android:paddingRight ="16dp"
             android:paddingTop="16dp"
+            android:paddingRight="16dp"
             android:paddingBottom="0dp">
 
 
@@ -121,18 +121,18 @@
             <SeekBar
                 android:id="@+id/seekDispersion"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="24dp"
                 android:max="100"
                 android:min="0"
                 android:progressDrawable="@drawable/custom_seekbar"
                 android:thumb="@drawable/custom_thumb"
-                android:thumbTint="#FFFFFF" />
+                android:thumbTint="@null" />
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingLeft="16dp"
-                android:paddingTop="0dp"
+                android:paddingTop="2dp"
                 android:paddingRight="16dp">
 
                 <TextView
@@ -161,19 +161,19 @@
             <SeekBar
                 android:id="@+id/seekSmoothness"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="24dp"
                 android:max="100"
                 android:min="0"
                 android:progressDrawable="@drawable/custom_seekbar"
                 android:thumb="@drawable/custom_thumb"
-                android:thumbTint="#FFFFFF" />
+                android:thumbTint="@null" />
 
             <!-- ======== PANORAMA ========= -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="16dp"
-                android:paddingTop="4dp"
+                android:paddingTop="2dp"
                 android:paddingEnd="16dp">
 
                 <TextView
@@ -202,26 +202,67 @@
             <SeekBar
                 android:id="@+id/seekStereoWidth"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="24dp"
                 android:max="100"
                 android:min="0"
                 android:progressDrawable="@drawable/custom_seekbar"
                 android:thumb="@drawable/custom_thumb"
-                android:thumbTint="#FFFFFF" />
+                android:thumbTint="@null" />
 
-            <!-- ======== LOWPASS FILTER ========= -->
+            <!-- ======== LOW-PASS FILTER CUTOFF FREQUENCY ========= -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="16dp"
-                android:paddingTop="4dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="16dp">
+
+                <TextView
+                    android:id="@+id/textCutoffLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Low-pass cutoff"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/textCutoffValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="600 Hz"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    app:layout_constraintBottom_toBottomOf="@id/textCutoffLabel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/textCutoffLabel" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <SeekBar
+                android:id="@+id/seekCutoff"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:max="1000"
+                android:min="0"
+                android:progressDrawable="@drawable/custom_seekbar"
+                android:thumb="@drawable/custom_thumb"
+                android:thumbTint="@null" />
+
+            <!-- ======== LOWPASS FILTER RESONANCE ========= -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingTop="2dp"
                 android:paddingEnd="16dp">
 
                 <TextView
                     android:id="@+id/textLPFCoefLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Low-pass filter"
+                    android:text="Low-pass resonance"
                     android:textColor="#FFFFFF"
                     android:textSize="18sp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -243,19 +284,19 @@
             <SeekBar
                 android:id="@+id/seekLPFCoef"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="24dp"
                 android:max="100"
                 android:min="0"
                 android:progressDrawable="@drawable/custom_seekbar"
                 android:thumb="@drawable/custom_thumb"
-                android:thumbTint="#FFFFFF" />
+                android:thumbTint="@null" />
 
             <!-- ======== VOLUME ========= -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="16dp"
-                android:paddingTop="4dp"
+                android:paddingTop="2dp"
                 android:paddingEnd="16dp">
 
                 <TextView
@@ -284,33 +325,33 @@
             <SeekBar
                 android:id="@+id/seekVolume"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="24dp"
                 android:max="200"
                 android:min="0"
                 android:progressDrawable="@drawable/custom_seekbar"
                 android:thumb="@drawable/custom_thumb"
-                android:thumbTint="#FFFFFF" />
+                android:thumbTint="@null" />
 
-            <TextView
+            <!--<TextView
                 android:id="@+id/advancedSettingsHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#1E130A"
-                android:padding="6dp"
                 android:layout_marginLeft="14dp"
                 android:layout_marginRight="14dp"
+                android:background="#1E130A"
+                android:gravity="center_vertical|center"
+                android:paddingTop="4dp"
                 android:text="Advanced settings ▼"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:gravity="center_vertical|center"/>
+                android:textSize="16sp" />-->
 
             <LinearLayout
                 android:id="@+id/advancedSettingsContainer"
                 android:layout_width="match_parent"
-                android:layout_height="64dp"
+                android:layout_height="72dp"
                 android:orientation="vertical"
-                android:paddingTop="0dp"
                 android:paddingLeft="0dp"
+                android:layout_marginTop="16dp"
                 android:paddingRight="0dp">
 
                 <LinearLayout
@@ -318,8 +359,8 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingTop="0dp"
                     android:paddingStart="6dp"
+                    android:paddingTop="0dp"
                     android:paddingBottom="0dp">
 
                     <CheckBox
@@ -334,7 +375,7 @@
                         android:layout_weight="1"
                         android:text="2 channels"
                         android:textColor="#FFFFFF"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                     <CheckBox
                         android:id="@+id/checkboxAutoNormalize"
@@ -348,7 +389,7 @@
                         android:layout_weight="1"
                         android:text="Auto-normalize"
                         android:textColor="#FFFFFF"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -356,12 +397,13 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
+                    android:paddingStart="6dp"
                     android:paddingTop="0dp"
-                    android:paddingBottom="0dp"
-                    android:paddingStart = "6dp">
+                    android:paddingBottom="0dp">
+
 
                     <CheckBox
-                        android:id="@+id/checkboxAM"
+                        android:id="@+id/checkboxDeepBass"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:buttonTint="@color/checkbox_checked_color" />
@@ -370,9 +412,9 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Amp modulation"
+                        android:text="Deep bass (FIR/IIR)"
                         android:textColor="#FFFFFF"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                     <CheckBox
                         android:id="@+id/checkboxStereoDrift"
@@ -386,8 +428,23 @@
                         android:layout_weight="1"
                         android:text="Stereo drift"
                         android:textColor="#FFFFFF"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
                 </LinearLayout>
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="6dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp">
+                    <!-- ======== VOLUME ========= -->
+
+                </LinearLayout>
+
+
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

@@ -29,6 +29,7 @@ import android.widget.LinearLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private var isPlaying = false
@@ -91,7 +92,6 @@ class MainActivity : AppCompatActivity() {
 
     // Media Session
     private lateinit var mediaSession: MediaSession
-
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private fun initMediaSession() {
         mediaSession = MediaSession(this, "NoiseSession")
@@ -135,28 +135,28 @@ class MainActivity : AppCompatActivity() {
     // Noise Service
     private fun startNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
-        intent.`package` = "com.brownie.sempers"
+        intent.`package` = "com.sempers.brownie"
         intent.putExtra("action", "start")
         ContextCompat.startForegroundService(this, intent)
     }
 
     private fun playNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
-        intent.`package` = "com.brownie.sempers"
+        intent.`package` = "com.sempers.brownie"
         intent.putExtra("action", "play")
         startService(intent)
     }
 
     private fun pauseNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
-        intent.`package` = "com.brownie.sempers"
+        intent.`package` = "com.sempers.brownie"
         intent.putExtra("action", "pause")
         startService(intent)
     }
 
     private fun stopNoiseService() {
         val intent = Intent(this, NoiseService::class.java)
-        intent.`package` = "com.brownie.sempers"
+        intent.`package` = "com.sempers.brownie"
         intent.putExtra("action", "stop")
         startService(intent)
     }
@@ -166,6 +166,23 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("action", "update")
         intent.putExtra("settings", settings)
         startService(intent)
+    }
+
+    // Read settings
+    private fun loadSettings() {
+        // Reading settings initially
+        val prefs = getSharedPreferences("BrowniePrefs", MODE_PRIVATE)
+        settings.dispersion = prefs.getFloat("dispersion", 0.3f).toDouble()
+        settings.smoothness = prefs.getFloat("smoothness", 0.5f).toDouble()
+        settings.stereoWidth = prefs.getFloat("panorama", 1.0f).toDouble()
+        settings.lpfCoefficient = prefs.getFloat("compression", 0.0f).toDouble()
+        settings.volume = prefs.getFloat("volume", 1.0f).toDouble()
+        settings.isTwoChannels = prefs.getBoolean("2channels", true)
+        settings.autoNormalize = prefs.getBoolean("autonormalize", false)
+        settings.isAmplitudeModulation = prefs.getBoolean("am", false)
+        settings.isStereoDrift = prefs.getBoolean("sd", false)
+        settings.isDeepBass = prefs.getBoolean("deepBass", true)
+        settings.cutoffFrequency = prefs.getFloat("cutoff", 600.0f).toDouble()
     }
 
     // Save settings
@@ -182,6 +199,8 @@ class MainActivity : AppCompatActivity() {
             putBoolean("autonormalize", settings.autoNormalize)
             putBoolean("am", settings.isAmplitudeModulation)
             putBoolean("sd", settings.isStereoDrift)
+            putBoolean("deepBass", settings.isDeepBass)
+            putFloat("cutoff", settings.cutoffFrequency.toFloat())
             apply()
         }
     }
@@ -200,7 +219,7 @@ class MainActivity : AppCompatActivity() {
                 val dbValue = intent?.getDoubleExtra("dbValue", 0.0) ?: 0.0
                 val autoGain = intent?.getDoubleExtra("autoGain", 1.0) ?: 1.0
                 lastDbValue = dbValue
-                textDbValue.text = String.format("%.1f dB", dbValue)
+                textDbValue.text = String.format(Locale.US, "%.1f dB", dbValue)
             }
         }
     }
@@ -213,16 +232,33 @@ class MainActivity : AppCompatActivity() {
                 return
 
             if (state) {
-                textDbValue.text = String.format("%.1f dB", lastDbValue)
+                textDbValue.text = String.format(Locale.US,"%.1f dB", lastDbValue)
+                animatePlayPauseButton()
                 btnPlayPause.setImageResource(R.drawable.pause_circle)
                 isPlaying = true
             }
             else {
                 textDbValue.text = "Pause"
+                animatePlayPauseButton()
                 btnPlayPause.setImageResource(R.drawable.play_circle)
                 isPlaying = false
             }
         }
+    }
+
+    private fun animatePlayPauseButton() {
+        btnPlayPause.animate()
+            .setDuration(100)
+            .scaleX(0.85f)
+            .scaleY(0.85f)
+            .withEndAction {
+                btnPlayPause.animate()
+                    .setDuration(100)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .start()
+            }
+            .start()
     }
 
     private fun togglePlayPause() {
@@ -281,10 +317,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         // drop down Advanced settings
-        val header = findViewById<TextView>(R.id.advancedSettingsHeader)
+
         val container = findViewById<LinearLayout>(R.id.advancedSettingsContainer)
-        container.visibility = View.GONE
-        header.setOnClickListener {
+        container.visibility = View.VISIBLE
+        /*
+            val header = findViewById<TextView>(R.id.advancedSettingsHeader)
+            header.setOnClickListener {
             if (container.visibility == View.VISIBLE) {
                 container.visibility = View.GONE
                 header.text = "Advanced settings ▼"
@@ -293,22 +331,12 @@ class MainActivity : AppCompatActivity() {
                 container.visibility = View.VISIBLE
                 header.text = "Advanced settings ▲"
             }
-        }
+        }*/
 
+        // Reading settings from preferences
+        loadSettings()
 
-        // Reading settings initially
-        val prefs = getSharedPreferences("BrowniePrefs", MODE_PRIVATE)
-        settings.dispersion = prefs.getFloat("dispersion", 0.3f).toDouble()
-        settings.smoothness = prefs.getFloat("smoothness", 0.5f).toDouble()
-        settings.stereoWidth = prefs.getFloat("panorama", 1.0f).toDouble()
-        settings.lpfCoefficient = prefs.getFloat("compression", 0.0f).toDouble()
-        settings.volume = prefs.getFloat("volume", 1.0f).toDouble()
-        settings.isTwoChannels = prefs.getBoolean("2channels", true)
-        settings.autoNormalize = prefs.getBoolean("autonormalize", false)
-        settings.isAmplitudeModulation = prefs.getBoolean("am", false)
-        settings.isStereoDrift = prefs.getBoolean("sd", false)
-
-        // Initialization from NoiseEngine
+        // Initialization from NoiseEngineSetting
         val seekDispersion = findViewById<SeekBar>(R.id.seekDispersion)
         val textDispersion = findViewById<TextView>(R.id.textDispersionValue)
         val seekSmoothness = findViewById<SeekBar>(R.id.seekSmoothness)
@@ -321,8 +349,13 @@ class MainActivity : AppCompatActivity() {
         val textVolume = findViewById<TextView>(R.id.textVolumeValue)
         val checkTwoChannels = findViewById<CheckBox>(R.id.checkboxIsTwoChannels)
         val checkAutoNormalize = findViewById<CheckBox>(R.id.checkboxAutoNormalize)
-        val checkAM = findViewById<CheckBox>(R.id.checkboxAM)
+        //val checkAM = findViewById<CheckBox>(R.id.checkboxAM)
         val checkSD = findViewById<CheckBox>(R.id.checkboxStereoDrift)
+        val checkDeepBass = findViewById<CheckBox>(R.id.checkboxDeepBass)
+        val seekCutoff = findViewById<SeekBar>(R.id.seekCutoff)
+        val textCutoff = findViewById<TextView>(R.id.textCutoffValue)
+
+        if (settings.autoNormalize) seekVolume.isEnabled = false
 
         seekDispersion.progress = (settings.dispersion * 100.0).toInt()
         textDispersion.text = (settings.dispersion * 100.0).roundToInt().toString() + "%"
@@ -336,8 +369,11 @@ class MainActivity : AppCompatActivity() {
         textVolume.text = (settings.volume * 100.0).roundToInt().toString() + "%"
         checkTwoChannels.isChecked = settings.isTwoChannels
         checkAutoNormalize.isChecked = settings.autoNormalize
-        checkAM.isChecked = settings.isAmplitudeModulation
+        //checkAM.isChecked = settings.isAmplitudeModulation
         checkSD.isChecked = settings.isStereoDrift
+        checkDeepBass.isChecked = settings.isDeepBass
+        seekCutoff.progress = (settings.cutoffFrequency).roundToInt()
+        textCutoff.text = (settings.cutoffFrequency).roundToInt().toString() + " Hz"
         
         // Handlers
         seekDispersion.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
@@ -345,11 +381,12 @@ class MainActivity : AppCompatActivity() {
                 val value = progress * 0.01
                 textDispersion.text = "$progress%"
                 settings.dispersion = value
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {
                 updateNoiseService()
                 saveSettings()
             }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
         seekSmoothness.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
@@ -357,11 +394,12 @@ class MainActivity : AppCompatActivity() {
                 val value = progress * 0.01
                 textSmoothness.text = "$progress%"
                 settings.smoothness = value
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {
                 updateNoiseService()
                 saveSettings()
             }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
         seekStereoWidth.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
@@ -369,11 +407,12 @@ class MainActivity : AppCompatActivity() {
                 val value = progress * 0.01
                 textStereoWidth.text = "$progress%"
                 settings.stereoWidth = value
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {
                 updateNoiseService()
                 saveSettings()
             }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
         seekLPF.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
@@ -381,11 +420,12 @@ class MainActivity : AppCompatActivity() {
                 val value = progress * 0.01
                 textLPF.text = "$progress%"
                 settings.lpfCoefficient = value
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {
                 updateNoiseService()
                 saveSettings()
             }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
         seekVolume.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
@@ -413,20 +453,36 @@ class MainActivity : AppCompatActivity() {
             saveSettings()
         }
 
-        checkAM.setOnCheckedChangeListener { _, isChecked ->
+        /*checkAM.setOnCheckedChangeListener { _, isChecked ->
             settings.isAmplitudeModulation = isChecked
             updateNoiseService()
             saveSettings()
-        }
+        }*/
 
         checkSD.setOnCheckedChangeListener { _, isChecked ->
             settings.isStereoDrift = isChecked
             updateNoiseService()
             saveSettings()
         }
+
+        checkDeepBass.setOnCheckedChangeListener { _, isChecked ->
+            settings.isDeepBass = isChecked
+            updateNoiseService()
+            saveSettings()
+        }
+
+        seekCutoff.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                val value = progress * 1.0
+                textCutoff.text = "$progress Hz"
+                settings.cutoffFrequency = value
+                updateNoiseService()
+                saveSettings()
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
     }
-
-
 
     override fun onStart()
     {

@@ -18,17 +18,21 @@ import kotlin.random.Random
 class NoiseEngine {
     var isPlaying = false
     // Settings for foreground service's noise engine
-    private var settings = NoiseEngineSettings()
+    @Volatile
+    private var settingsVolatile = NoiseEngineSettings()
+
 
     // Constants
     private val MIN_AMP = 10.0.pow(-72 / 20.0)
     private val SAMPLE_RATE = 44100
 
+
+
     // Modulations
     private val AM_SPEED = 0.0333    // Hz
-    private val AM_DEPTH = 0.1
+    private val AM_DEPTH = 0.2
     private val DRIFT_SPEED = 0.0333 // Hz
-    private val DRIFT_DEPTH = 0.05
+    private val DRIFT_DEPTH = 0.1
 
     // Filter coefficients
     private var a1 = 0.0
@@ -41,6 +45,7 @@ class NoiseEngine {
     private var lState = FilterState()
     private var rState = FilterState()
     private var lastResonance = -1.0
+    private var lastCutoffFrequency = 1000.0
 
     // Handler of updated data from the service
     var onSampleUpdate: ((a: Double, b: Double, c: Double, d: Double) -> Unit)? = null
@@ -49,18 +54,11 @@ class NoiseEngine {
     private lateinit var audioTrack: AudioTrack
 
     // Brown Noise generation
-    fun generate(inBrown: Double, dispersion: Double): Double {
-        var brown = inBrown
-        var white = Random.nextDouble(-dispersion, dispersion)
-        if ((brown == 1.0 && white > 0) || (brown == -1.0 && white < 0)) {
-            white = -white
-        }
-        brown += white
-        brown = brown.coerceIn(-1.0, 1.0)
-        return brown
-    }
+
 
     private fun calculateLPFCoefficients(resonance: Double) {
+        val settings = settingsVolatile
+
         val omega = (2.0 * PI * settings.cutoffFrequency / SAMPLE_RATE)
         val sinOmega = sin(omega)
         val cosOmega = cos(omega)
@@ -82,13 +80,11 @@ class NoiseEngine {
         this.a2 = a2 / a0
 
         lastResonance = resonance
+        lastCutoffFrequency = settings.cutoffFrequency
     }
 
     // Bi-quad Low Pass Filter
-    private fun applyLPF(input: Double, resonance: Double, state: FilterState): Double {
-        if (lastResonance == -1.0 || lastResonance != resonance) {
-            calculateLPFCoefficients(resonance)
-        }
+    private fun applyLPF(input: Double, state: FilterState): Double {
         // Calculating output
         val output = b0 * input + b1 * state.x1 + b2 * state.x2 - a1 * state.y1 - a2 * state.y2
 
@@ -111,6 +107,8 @@ class NoiseEngine {
             AudioFormat.CHANNEL_OUT_STEREO,
             AudioFormat.ENCODING_PCM_16BIT
         ) * 8
+
+        val settings = settingsVolatile
 
         val buffer = ShortArray(bufferSize)
         var brown = Random.nextDouble(-settings.dispersion, settings.dispersion)
@@ -145,46 +143,82 @@ class NoiseEngine {
 
         audioTrack.play()
 
+        fun generate(inBrown: Double, dispersion: Double): Double {
+            var brown = inBrown
+            var white = Random.nextDouble(-dispersion, dispersion)
+            if ((brown == 1.0 && white > 0) || (brown == -1.0 && white < 0)) {
+                white = -white
+            }
+            brown += white
+            brown = brown.coerceIn(-1.0, 1.0)
+            return brown
+        }
+
         thread(priority = Thread.MAX_PRIORITY) {
             while (isPlaying) {
+                val settings = settingsVolatile
                 var count = 0
                 var sum = 0.0
                 var sum2 = 0.0
-                val smooth = settings.smoothness.coerceIn(0.1, 0.99) * 100.0
+                val smoothFactor = if (settings.isDeepBass)
+                    settings.smoothness.coerceIn(0.01, 0.99) * 100.0
+                else
+                    settings.smoothness.coerceIn(0.01, 0.99)
                 val panDelta = settings.stereoWidth * 0.2
                 val dispersion = settings.dispersion.coerceIn(0.01, 0.99)
                 val resonance = (1.0 - settings.lpfCoefficient).coerceIn(0.1, 1.0)
+                val cutoff = settings.cutoffFrequency
+                if (lastResonance == -1.0 || lastResonance != resonance || lastCutoffFrequency != cutoff) {
+                    calculateLPFCoefficients(resonance)
+                }
                 if (settings.autoNormalize) {
-                    autoGain =
-                        if (autoGain == -1.0) 1.0 else autoGain * settings.normLevel / avgBufferLevel
+                    if (autoGain < 0) {
+                        autoGain = 1.0
+                    } else {
+                        autoGain *= settings.normLevel / avgBufferLevel
+                    }
+                } else {
+                    autoGain = -1.0
                 }
 
                 for (i in buffer.indices step 2) {
                     // Generating mono
-                    brown = this.generate(brown, dispersion);
-                    val sample = (prev * smooth + brown) / (smooth + 1)
+                    brown = generate(brown, dispersion);
+                    val sample = if (settings.isDeepBass)
+                            (prev * smoothFactor + brown) / (smoothFactor + 1)
+                    else    prev * smoothFactor + brown * (1.0 - smoothFactor)
                     var left = sample
                     var right = sample
 
                     // Generating two independent channels
                     if (settings.isTwoChannels) {
-                        brownL = this.generate(brownL, dispersion)
-                        brownR = this.generate(brownR, dispersion)
-                        left = (prevL * smooth + brownL) / (smooth + 1)
-                        right = (prevR * smooth + brownR) / (smooth + 1)
+                        brownL = generate(brownL, dispersion)
+                        brownR = generate(brownR, dispersion)
+                        if (settings.isDeepBass) {
+                            left = (prevL * smoothFactor + brownL) / (smoothFactor + 1)
+                            right = (prevR * smoothFactor + brownR) / (smoothFactor + 1)
+                        } else {
+                            left = prevL * smoothFactor + brownL * (1.0 - smoothFactor)
+                            right = prevR * smoothFactor + brownR * (1.0 - smoothFactor)
+                        }
                     }
 
-                    // Saving previous values
-                    prev = sample
-                    prevL = left
-                    prevR = right
+                    // Saving previous values - varies whether isDeepBass or not
+                    if (settings.isDeepBass) {
+                        prev = sample
+                        prevL = left      // we're saving filtered signal and smoothing with it
+                        prevR = right
+                    } else {
+                        prev = brown
+                        prevL = brownL    // we're saving new brownValue
+                        prevR = brownR
+                    }
 
                     // Panning
                     if (!settings.isTwoChannels) {
-                        left += panDelta * settings.stereoWidth
-                        right -= panDelta * settings.stereoWidth
-                    }
-                    else {
+                        left += panDelta
+                        right -= panDelta
+                    } else {
                         left = settings.stereoWidth * left + (1 - settings.stereoWidth) * (left + right) / 2
                         right = settings.stereoWidth * right + (1 - settings.stereoWidth) * (left + right) / 2
                     }
@@ -207,14 +241,14 @@ class NoiseEngine {
 
                     // LPF
                     if (settings.lpfCoefficient >= 0.01) {
-                        left = applyLPF(left, resonance, lState)
-                        right = applyLPF(right, resonance, rState)
+                        left = applyLPF(left, lState)
+                        right = applyLPF(right, rState)
                     }
 
                     // Volume and auto-normalization
                     if (settings.autoNormalize) {
                         left *= autoGain
-                        right*= autoGain
+                        right *= autoGain
                     } else {
                         left *= settings.volume
                         right *= settings.volume
@@ -261,6 +295,6 @@ class NoiseEngine {
     }
 
     fun updateSettings(newSettings: NoiseEngineSettings) {
-        settings = newSettings
+        settingsVolatile = newSettings
     }
 }
