@@ -17,16 +17,14 @@ import kotlin.random.Random
 
 class NoiseEngine {
     var isPlaying = false
-    // Settings for foreground service's noise engine
+
+    // Settings for the foreground service's noise engine
     @Volatile
     private var settingsVolatile = NoiseEngineSettings()
-
 
     // Constants
     private val MIN_AMP = 10.0.pow(-72 / 20.0)
     private val SAMPLE_RATE = 44100
-
-
 
     // Modulations
     private val AM_SPEED = 0.0333    // Hz
@@ -34,14 +32,14 @@ class NoiseEngine {
     private val DRIFT_SPEED = 0.0333 // Hz
     private val DRIFT_DEPTH = 0.1
 
-    // Filter coefficients
+    // LPF coefficients
     private var a1 = 0.0
     private var a2 = 0.0
     private var b0 = 0.0
     private var b1 = 0.0
     private var b2 = 0.0
 
-    // Filter states
+    // LPF states
     private var lState = FilterState()
     private var rState = FilterState()
     private var lastResonance = -1.0
@@ -52,9 +50,6 @@ class NoiseEngine {
 
     // Audiotrack object
     private lateinit var audioTrack: AudioTrack
-
-    // Brown Noise generation
-
 
     private fun calculateLPFCoefficients(resonance: Double) {
         val settings = settingsVolatile
@@ -157,25 +152,27 @@ class NoiseEngine {
         thread(priority = Thread.MAX_PRIORITY) {
             while (isPlaying) {
                 val settings = settingsVolatile
-                var count = 0
-                var sum = 0.0
-                var sum2 = 0.0
-                val smoothFactor = if (settings.isDeepBass)
-                    settings.smoothness.coerceIn(0.01, 0.99) * 100.0
-                else
-                    settings.smoothness.coerceIn(0.01, 0.99)
-                val panDelta = settings.stereoWidth * 0.2
+                var count = 0                           // discrete count
+                var sum = 0.0                           // avg sum
+                var sum2 = 0.0                          // rms sum
                 val dispersion = settings.dispersion.coerceIn(0.01, 0.99)
-                val resonance = (1.0 - settings.lpfCoefficient).coerceIn(0.1, 1.0)
-                val cutoff = settings.cutoffFrequency
-                if (lastResonance == -1.0 || lastResonance != resonance || lastCutoffFrequency != cutoff) {
+                val smoothFactor = if (settings.isDeepBass)
+                    settings.smoothness.coerceIn(0.01, 0.99) * 100.0        // FIR mode
+                else
+                    settings.smoothness.coerceIn(0.01, 0.99)                // IIR mode
+                val panDelta = settings.stereoWidth * 0.2                   // to pan in mono mode
+                val resonance = (1.0 - settings.lpfCoefficient).coerceIn(0.1, 1.0)  // lpf resonance
+                val cutoff = settings.cutoffFrequency                               // lpf cutoff
+                if (lastResonance == -1.0
+                    || lastResonance != resonance
+                    || lastCutoffFrequency != cutoff) {
                     calculateLPFCoefficients(resonance)
                 }
                 if (settings.autoNormalize) {
                     if (autoGain < 0) {
                         autoGain = 1.0
                     } else {
-                        autoGain *= settings.normLevel / avgBufferLevel
+                        autoGain *= settings.normLevel / avgBufferLevel   // autoGain calculation
                     }
                 } else {
                     autoGain = -1.0
@@ -185,8 +182,8 @@ class NoiseEngine {
                     // Generating mono
                     brown = generate(brown, dispersion);
                     val sample = if (settings.isDeepBass)
-                            (prev * smoothFactor + brown) / (smoothFactor + 1)
-                    else    prev * smoothFactor + brown * (1.0 - smoothFactor)
+                            (prev * smoothFactor + brown) / (smoothFactor + 1)      // FIR mode
+                    else    prev * smoothFactor + brown * (1.0 - smoothFactor)      // IIR mode
                     var left = sample
                     var right = sample
 
@@ -195,22 +192,22 @@ class NoiseEngine {
                         brownL = generate(brownL, dispersion)
                         brownR = generate(brownR, dispersion)
                         if (settings.isDeepBass) {
-                            left = (prevL * smoothFactor + brownL) / (smoothFactor + 1)
+                            left = (prevL * smoothFactor + brownL) / (smoothFactor + 1)   // FIR
                             right = (prevR * smoothFactor + brownR) / (smoothFactor + 1)
                         } else {
-                            left = prevL * smoothFactor + brownL * (1.0 - smoothFactor)
+                            left = prevL * smoothFactor + brownL * (1.0 - smoothFactor)   // IIR
                             right = prevR * smoothFactor + brownR * (1.0 - smoothFactor)
                         }
                     }
 
-                    // Saving previous values - varies whether isDeepBass or not
+                    // Saving previous values before sound postprocessing
                     if (settings.isDeepBass) {
                         prev = sample
-                        prevL = left      // we're saving filtered signal and smoothing with it
+                        prevL = left  // we're saving filtered signal and smoothing with it (FIR mode)
                         prevR = right
                     } else {
                         prev = brown
-                        prevL = brownL    // we're saving new brownValue
+                        prevL = brownL // we're saving new brown value (IIR mode)
                         prevR = brownR
                     }
 
@@ -255,23 +252,24 @@ class NoiseEngine {
                     }
 
                     // Limiter
-                    left = left.coerceIn(-0.9999, 0.9999)
-                    right = right.coerceIn(-0.9999, 0.9999)
+                    left = left.coerceIn(-0.99999, 0.99999)
+                    right = right.coerceIn(-0.99999, 0.99999)
 
-                    // Average on Buffer counting after Compressor and Volume
+                    // Counting two averages over Buffer after LPF and Volume
                     count++
                     sum += (abs(left) + abs(right)) / 2.0
-                    sum2 += left*left + right*right
+                    sum2 += left * left + right * right
 
                     // Buffering
                     buffer[i]     = (left * Short.MAX_VALUE).roundToInt().toShort()
                     buffer[i + 1] = (right * Short.MAX_VALUE).roundToInt().toShort()
                 }
 
-                avgBufferLevel =  sum / count
-                avgBufferRmsLevel = sqrt(sum2 / (2 * count))
-                val dbValue = 20.0 * log10(max(avgBufferRmsLevel, MIN_AMP))
+                avgBufferLevel =  sum / count                        // linear average
+                avgBufferRmsLevel = sqrt(sum2 / (2 * count))     // RMS average
+                val dbValue = 20.0 * log10(max(avgBufferRmsLevel, MIN_AMP))  // to dB
 
+                // Submitting new values to the GUI
                 onSampleUpdate?.invoke(avgBufferLevel, avgBufferRmsLevel, dbValue, autoGain)
 
                 audioTrack.write(buffer, 0, buffer.size)
@@ -290,7 +288,8 @@ class NoiseEngine {
         }
         catch (e: Exception)
         {
-            // for the rare case when audiotrack is not fully initialized, so fast clicking ends up in an exception
+            // for the rare case when audiotrack is not fully initialized,
+            // so fast clicking might end up in an exception
         }
     }
 
